@@ -37,7 +37,6 @@ class Config(abc.ABC):
 
         if self._writable_filesystem and not path.exists():
             defaults = self._get_annotation_values()
-            path.write_text(yaml.dump(defaults))
         else:
             try:
                 content = self._load_from_file()
@@ -161,13 +160,10 @@ class Config(abc.ABC):
         # random string is used for race conditions when using multiprocessing
         random_str = "".join(random.choices(seq, k=10))
 
-        tmp = self.path().parent / f"tmp_{random_str}.txt"
-
-        # Checking whether we can create a dir
-        try:
-            tmp.parent.mkdir(parents=True, exist_ok=True)
-        except PermissionError:
-            return False
+        testdir = self.path().parent
+        while not Path.exists(testdir):
+            testdir = testdir.parent
+        tmp = testdir / f"tmp_{random_str}.txt"
 
         # Checking whether we can create a file (most probably redundant)
         try:

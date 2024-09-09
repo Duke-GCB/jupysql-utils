@@ -66,12 +66,12 @@ SYSTEM_INFO = get_system_info()
 class UserSettings(Config):
     """User-customizable settings"""
 
-    version_check_enabled: bool = True
+    version_check_enabled: bool = False
 
     # important: do not get the key like this! use UserSettings().get_cloud_key()
     cloud_key: str = None
     user_email: str = None
-    stats_enabled: bool = True
+    stats_enabled: bool = False
 
     @classmethod
     def path(cls):
@@ -440,6 +440,17 @@ class Telemetry:
         if missing like timestamp, event id and stats information.
         """
 
+        # Check latest version
+        check_version(self.package_name, self.version)
+
+        if self.print_cloud_message:
+            check_cloud()
+
+        (telemetry_enabled, uid, is_install) = _get_telemetry_info()
+
+        if not telemetry_enabled:
+            return
+
         posthog.project_api_key = self.api_key
         metadata = metadata or {}
 
@@ -447,14 +458,6 @@ class Telemetry:
 
         if client_time is None:
             client_time = datetime.datetime.now()
-
-        (telemetry_enabled, uid, is_install) = _get_telemetry_info()
-
-        # Check latest version
-        check_version(self.package_name, self.version)
-
-        if self.print_cloud_message:
-            check_cloud()
 
         # NOTE: this should not happen anymore
         if "NO_UID" in uid:
@@ -494,6 +497,7 @@ class Telemetry:
         os = SYSTEM_INFO["os"]
         environment = SYSTEM_INFO["env"]
 
+        # this will necessarily be true here; remnant from earlier version
         if telemetry_enabled:
             (event_id, uid, action, client_time, elapsed_time) = validate_entries(
                 event_id, uid, action, client_time, total_runtime
